@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "macOS compact chrome",
+    "description": "Fold the macOS sidebar's brand row, New Session bar and panel list into one compact control row under the window strip. Toggle in Settings → General."
+  }
+}

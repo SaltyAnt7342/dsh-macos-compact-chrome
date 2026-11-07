@@ -1,0 +1,55 @@
+{
+  "name": "dsh-macos-compact-chrome",
+  "version": "0.1.0",
+  "description": "macOS compact sidebar chrome for DeepSeek Harness: folds the brand row, the full-width New Session bar and the stacked panel list into one control row under the window strip. Toggle in Settings → General.",
+  "type": "module",
+  "license": "MIT",
+  "author": "SaltyAnt7342",
+  "homepage": "https://github.com/SaltyAnt7342/dsh-macos-compact-chrome",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaltyAnt7342/dsh-macos-compact-chrome.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SaltyAnt7342/dsh-macos-compact-chrome/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "macos",
+    "sidebar",
+    "compact",
+    "layout"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "LICENSE",
+    "docs/*.png"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}
