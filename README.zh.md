@@ -17,10 +17,13 @@
 ## 安装
 
 ```sh
-dsh plugin --profile desktop add dsh-macos-compact-chrome
+dsh plugin --profile desktop add github:SaltyAnt7342/dsh-macos-compact-chrome
 ```
 
-或在应用的「插件」页里添加（添加插件 → 粘贴 `dsh-macos-compact-chrome`），然后重新加载窗口。
+或在应用的「插件」页里添加：**添加插件 → 粘贴**
+`https://github.com/SaltyAnt7342/dsh-macos-compact-chrome` 安装，然后重新加载窗口。
+
+npm 包名 `dsh-macos-compact-chrome` 留给之后的正式发布；在那之前以 GitHub 仓库为安装源。
 
 插件只在浏览器侧运行：没有 Host 服务、没有工具、不联网、没有配置项。
 

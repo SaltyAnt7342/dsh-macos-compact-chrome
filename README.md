@@ -17,10 +17,15 @@ The switch lives in **Settings → General**:
 ## Install
 
 ```sh
-dsh plugin --profile desktop add dsh-macos-compact-chrome
+dsh plugin --profile desktop add github:SaltyAnt7342/dsh-macos-compact-chrome
 ```
 
-or use the Plugins page in the app (Add plugin → paste `dsh-macos-compact-chrome`). Reload the window afterwards.
+or use the Plugins page in the app: **Add plugin → paste**
+`https://github.com/SaltyAnt7342/dsh-macos-compact-chrome` and install.
+Reload the window afterwards.
+
+The npm package name `dsh-macos-compact-chrome` is reserved for a later
+registry release; until then the GitHub repository is the install source.
 
 The plugin is browser-only: no Host service, no tools, no network access, no configuration keys.
 
