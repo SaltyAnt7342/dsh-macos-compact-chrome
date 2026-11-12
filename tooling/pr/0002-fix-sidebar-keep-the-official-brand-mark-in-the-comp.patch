@@ -1,0 +1,136 @@
+From b9cbd99259b00d742f9889b6d557a872318e42fe Mon Sep 17 00:00:00 2001
+From: saltyant73 <saltyant73@gmail.com>
+Date: Fri, 6 Nov 2026 21:46:01 +0800
+Subject: [PATCH 2/2] fix(sidebar): keep the official brand mark in the compact
+ strip
+
+---
+ packages/client/ui-sidebar/README.md          |  2 +-
+ packages/client/ui-sidebar/README.zh.md       |  2 +-
+ .../src/client/SidebarRoot.module.css         | 23 +++++++++++++-
+ .../ui-sidebar/src/client/SidebarRoot.tsx     | 30 ++++++++++++-------
+ 4 files changed, 43 insertions(+), 14 deletions(-)
+
+diff --git a/packages/client/ui-sidebar/README.md b/packages/client/ui-sidebar/README.md
+index c6e6470d89..7fd8984add 100644
+--- a/packages/client/ui-sidebar/README.md
++++ b/packages/client/ui-sidebar/README.md
+@@ -37,7 +37,7 @@ When the sidebar is fully hidden, Web shows only the header's sidebar opener. De
+ 
+ The expanded brand row renders `sidebar.brand.mark` and `sidebar.brand.name` as independent single slots; the collapsed rail renders the same mark slot. On Web and Windows desktop, clicking the expanded brand starts a new session; hovering or focusing it shows no tooltip. Without occupants, the shell uses the fish mark and a localized local-build label. A complete build stacks a code badge below the label as `version[-commit][-dirty]`, using `DSH_CLIENT_VERSION`, the optional 7-character `DSH_CLIENT_COMMIT_HASH`, and `DSH_CLIENT_GIT_DIRTY=true`; missing version metadata omits the badge. Clicking the fallback mark or label of such a build copies that badge text instead of starting a session, also on macOS desktop, and a successful write shows a Version copied toast. New Session targets the explicit Workspace used by a scoped action, otherwise the current Session's Workspace, otherwise the most recently active Workspace; when none exists it clears into the blank New Session page. The expanded New Session button displays the effective binding as trailing grey text on keyboard focus regardless of hover capability, and on hover when the device supports it. While the shortcut is visible, the centered icon and label fade before it when space is narrow; CSS reserves the shortcut’s width without measuring the button. Icon-only controls retain tooltips with platform-formatted keycaps, including the resident macOS header control when the sidebar is hidden. All controls expose `aria-keyshortcuts`. While the global access snapshot excludes `session/create`, the brand row stays inert and neither the New Session button nor the window-chrome New Session control renders; the Host still decides every create request.
+ 
+-On macOS desktop the expanded column starts in the compact arrangement: `sidebar.brand.name` renders in the 52px window strip, and one control bar carries New Session, the panel launchers, and More in place of the brand row, capsule, and stacked panel rows. The strip's layout button switches back to the classic rows; the choice persists in browser storage under `dsh.sidebar.compact-layout`. Other platforms keep the classic arrangement.
++On macOS desktop the expanded column starts in the compact arrangement: the brand mark and `sidebar.brand.name` render in the 52px window strip, and one control bar carries New Session, the panel launchers, and More in place of the brand row, capsule, and stacked panel rows. The strip's layout button switches back to the classic rows; the choice persists in browser storage under `dsh.sidebar.compact-layout`. Other platforms keep the classic arrangement.
+ 
+ ### Global panel entries
+ 
+diff --git a/packages/client/ui-sidebar/README.zh.md b/packages/client/ui-sidebar/README.zh.md
+index 56c48e960f..ea4370bf8a 100644
+--- a/packages/client/ui-sidebar/README.zh.md
++++ b/packages/client/ui-sidebar/README.zh.md
+@@ -37,7 +37,7 @@ dsh Web 客户端的侧边栏让用户识别当前构建、启动新会话、将
+ 
+ 展开的品牌行把 `sidebar.brand.mark` 与 `sidebar.brand.name` 渲染为两个独立的 single slot；收起轨道则渲染同一个 mark slot。在 Web 和 Windows 桌面端，点击展开态的品牌会新建会话，悬停或聚焦时不显示 tooltip。没有占位者时，外壳使用鱼形标记和本地化的本地构建标签。完整构建会在标签下方显示代码徽标；该徽标使用 `DSH_CLIENT_VERSION`、可选的 7 位 `DSH_CLIENT_COMMIT_HASH` 与 `DSH_CLIENT_GIT_DIRTY=true` 组装成 `version[-commit][-dirty]`；缺少版本元数据时不显示徽标。此类构建中点击回退的标记或标签会复制该徽标文本而非新建会话，macOS 桌面端同样适用；写入成功后弹出“版本号复制成功”toast。New Session 优先使用作用域操作明确指定的 Workspace，否则使用当前 Session 所属 Workspace，再否则使用最近活跃 Workspace；一个 Workspace 都没有时则清空选择，进入空白 New Session 页面。 展开态的新建会话按钮在键盘聚焦时于右侧以灰色文字显示当前有效绑定，不受设备悬停能力限制；支持悬停的设备也会在悬停时显示。快捷键可见且空间较窄时，居中的图标与文字在快捷键之前渐隐；CSS 为快捷键保留宽度，无需测量按钮。纯图标控件保留使用平台键位样式的 tooltip，侧栏隐藏时常驻的 macOS 头部控件也保持一致。所有控件均提供 `aria-keyshortcuts`。全局访问快照不含 `session/create` 时，品牌行不可点击，New Session 按钮和窗口标题栏中的 New Session 控件都不渲染；每个新建请求仍由 Host 判定。
+ 
+-macOS 桌面端展开时默认使用紧凑排布：`sidebar.brand.name` 渲染在 52px 窗口顶栏，单行控制条承载新建会话、面板图标与更多，替代品牌行、新会话胶囊和面板行。顶栏的布局按钮可切回经典排布；选择通过浏览器存储 `dsh.sidebar.compact-layout` 持久化。其他平台保持经典排布。
++macOS 桌面端展开时默认使用紧凑排布：品牌标记与 `sidebar.brand.name` 渲染在 52px 窗口顶栏，单行控制条承载新建会话、面板图标与更多，替代品牌行、新会话胶囊和面板行。顶栏的布局按钮可切回经典排布；选择通过浏览器存储 `dsh.sidebar.compact-layout` 持久化。其他平台保持经典排布。
+ 
+ ### 全局面板入口
+ 
+diff --git a/packages/client/ui-sidebar/src/client/SidebarRoot.module.css b/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
+index 5e116c47db..ce4cfc0cec 100644
+--- a/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
++++ b/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
+@@ -692,6 +692,7 @@
+ .compactBrandName {
+   display: flex;
+   align-items: center;
++  gap: 4px;
+   flex: 0 1 auto;
+   min-width: 0;
+   height: 24px;
+@@ -700,12 +701,32 @@
+   overflow: hidden;
+ }
+ 
+-.compactBrandName svg {
++.compactBrandMark {
++  display: inline-flex;
++  align-items: center;
++  flex: none;
++}
++
++.compactBrandWordmark {
++  display: inline-flex;
++  align-items: center;
++  min-width: 0;
++  overflow: hidden;
++}
++
++.compactBrandWordmark svg {
+   display: block;
+   height: var(--sidebar-brand-height, 18px);
+   width: auto;
+ }
+ 
++/* The local-build fallback is plain text, not the wordmark artwork. */
++.compactBrandWordmark .fallbackBrandName {
++  font-size: 13px;
++  line-height: 1;
++  letter-spacing: 0;
++}
++
+ /* Fullscreen hides the traffic lights, so the wordmark may use their space. */
+ :global([data-fullscreen]) .compactBrandName {
+   margin-left: 0;
+diff --git a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
+index 551ee78576..9fb93783f7 100644
+--- a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
++++ b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
+@@ -265,9 +265,11 @@ export function SidebarRoot({
+   const compactWide = compact && wide
+   const compactToggleLabel = t('layout.compact')
+   const layoutToggleLabel = compact ? t('layout.switchToClassic') : t('layout.switchToCompact')
+-  // The wordmark sits between the traffic lights (x 16–76) and the two 28px
+-  // strip controls; its height follows the available column width.
+-  const brandHeight = Math.max(14, Math.min(20, (width - 166) / 6.5))
++  // The brand group sits between the traffic lights (x 16–76) and the two
++  // 28px strip controls; mark and wordmark scale with the available width.
++  const brandSpace = Math.max(0, width - 168)
++  const brandMarkSize = Math.max(14, Math.min(20, Math.round(brandSpace / 8)))
++  const brandWordmarkHeight = Math.max(12, Math.min(20, (brandSpace - brandMarkSize - 4) / 6.5))
+   // Rail resting state is the whale mark; hovering swaps in the panel icon
+   // (the expand affordance, figma sidebar-hover flow). Expanded it is a plain
+   // panel icon.
+@@ -412,14 +414,20 @@ export function SidebarRoot({
+       {darwinDesktop && (
+         <div className={css.topStrip} data-window-drag>
+           {compactWide && (
+-            <span
+-              className={css.compactBrandName}
+-              style={{ '--sidebar-brand-height': `${brandHeight}px` } as CSSProperties}
+-              aria-hidden="true"
+-            >
+-              {renderSlot('sidebar.brand.name', {}, {
+-                fallback: <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>,
+-              })}
++            <span className={css.compactBrandName} aria-hidden="true">
++              <span className={css.compactBrandMark}>
++                {renderSlot('sidebar.brand.mark', { size: brandMarkSize }, {
++                  fallback: <FishLogo size={brandMarkSize} />,
++                })}
++              </span>
++              <span
++                className={css.compactBrandWordmark}
++                style={{ '--sidebar-brand-height': `${brandWordmarkHeight}px` } as CSSProperties}
++              >
++                {renderSlot('sidebar.brand.name', {}, {
++                  fallback: <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>,
++                })}
++              </span>
+             </span>
+           )}
+           {layoutToggle}
+-- 
+2.54.0 (Apple Git-157)
+

@@ -74,6 +74,12 @@ The plugin is plain ESM plus one browser module — no build step:
 
 To iterate, install the checkout directory as a bundle (`plugin_manager` install from the local path links it), edit `client.js`, then toggle the bundle off and on again from the Plugins page to reload the browser module.
 
+## Source build
+
+`tooling/` carries a second route: patch `ui-sidebar` sources and repackage the whole app. It produces a local unsigned DMG and ships the daily-check and rebuild-and-install scripts.
+
+That route needs a local official source clone and a full build environment, so it suits long-term personal use; for appearance alone, install the plugin above. The patch, updater, and upstream PR drafts live in [`tooling/`](tooling/README.md); version history is in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 MIT. Not affiliated with or endorsed by DeepSeek; DeepSeek Harness is MIT-licensed by DeepSeek.

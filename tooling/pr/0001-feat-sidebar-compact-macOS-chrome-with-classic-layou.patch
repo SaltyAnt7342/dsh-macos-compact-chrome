@@ -1,0 +1,853 @@
+From 0264f6ffa0beb0817fa8cda80082b92d2b3cacbb Mon Sep 17 00:00:00 2001
+From: saltyant73 <saltyant73@gmail.com>
+Date: Fri, 6 Nov 2026 21:31:36 +0800
+Subject: [PATCH 1/2] feat(sidebar): compact macOS chrome with classic-layout
+ toggle
+
+---
+ packages/client/ui-sidebar/README.md          |   2 +
+ packages/client/ui-sidebar/README.zh.md       |   2 +
+ .../src/client/SidebarRoot.module.css         |  79 +++++++
+ .../ui-sidebar/src/client/SidebarRoot.tsx     | 215 ++++++++++++------
+ .../ui-sidebar/src/client/contract/slots.ts   |  13 ++
+ .../client/ui-sidebar/src/client/index.ts     |  16 +-
+ .../client/ui-sidebar/src/client/locales.ts   |  24 ++
+ .../ui-sidebar/tests/apply.client.spec.tsx    |   5 +-
+ .../tests/pointer-scrollbars.client.spec.tsx  |   1 +
+ .../tests/sidebar-root.client.spec.tsx        | 111 ++++++---
+ 10 files changed, 356 insertions(+), 112 deletions(-)
+
+diff --git a/packages/client/ui-sidebar/README.md b/packages/client/ui-sidebar/README.md
+index 8783f2622c..c6e6470d89 100644
+--- a/packages/client/ui-sidebar/README.md
++++ b/packages/client/ui-sidebar/README.md
+@@ -37,6 +37,8 @@ When the sidebar is fully hidden, Web shows only the header's sidebar opener. De
+ 
+ The expanded brand row renders `sidebar.brand.mark` and `sidebar.brand.name` as independent single slots; the collapsed rail renders the same mark slot. On Web and Windows desktop, clicking the expanded brand starts a new session; hovering or focusing it shows no tooltip. Without occupants, the shell uses the fish mark and a localized local-build label. A complete build stacks a code badge below the label as `version[-commit][-dirty]`, using `DSH_CLIENT_VERSION`, the optional 7-character `DSH_CLIENT_COMMIT_HASH`, and `DSH_CLIENT_GIT_DIRTY=true`; missing version metadata omits the badge. Clicking the fallback mark or label of such a build copies that badge text instead of starting a session, also on macOS desktop, and a successful write shows a Version copied toast. New Session targets the explicit Workspace used by a scoped action, otherwise the current Session's Workspace, otherwise the most recently active Workspace; when none exists it clears into the blank New Session page. The expanded New Session button displays the effective binding as trailing grey text on keyboard focus regardless of hover capability, and on hover when the device supports it. While the shortcut is visible, the centered icon and label fade before it when space is narrow; CSS reserves the shortcut’s width without measuring the button. Icon-only controls retain tooltips with platform-formatted keycaps, including the resident macOS header control when the sidebar is hidden. All controls expose `aria-keyshortcuts`. While the global access snapshot excludes `session/create`, the brand row stays inert and neither the New Session button nor the window-chrome New Session control renders; the Host still decides every create request.
+ 
++On macOS desktop the expanded column starts in the compact arrangement: `sidebar.brand.name` renders in the 52px window strip, and one control bar carries New Session, the panel launchers, and More in place of the brand row, capsule, and stacked panel rows. The strip's layout button switches back to the classic rows; the choice persists in browser storage under `dsh.sidebar.compact-layout`. Other platforms keep the classic arrangement.
++
+ ### Global panel entries
+ 
+ Plugins add an icon component to the root-scoped `sidebar.panellist` list with an `id`, optional `order`, and a string or locale-aware `label`. The same id addresses the component registered in the layout's root-scoped `main` keyed slot; selecting a missing main entry throws without changing the current selection. The label supplies plain visible text, the accessible name, and the collapsed tooltip. Expanded navigation rows have a 2px gap. Each row reads its own selected state through `usePanelInfo`; moving DOM focus to search or a directory picker does not change the displayed panel or its selected row. With no panel registrations, neither the list nor spacing for it is rendered. The shipped composition registers no example panel.
+diff --git a/packages/client/ui-sidebar/README.zh.md b/packages/client/ui-sidebar/README.zh.md
+index 15acbfc859..56c48e960f 100644
+--- a/packages/client/ui-sidebar/README.zh.md
++++ b/packages/client/ui-sidebar/README.zh.md
+@@ -37,6 +37,8 @@ dsh Web 客户端的侧边栏让用户识别当前构建、启动新会话、将
+ 
+ 展开的品牌行把 `sidebar.brand.mark` 与 `sidebar.brand.name` 渲染为两个独立的 single slot；收起轨道则渲染同一个 mark slot。在 Web 和 Windows 桌面端，点击展开态的品牌会新建会话，悬停或聚焦时不显示 tooltip。没有占位者时，外壳使用鱼形标记和本地化的本地构建标签。完整构建会在标签下方显示代码徽标；该徽标使用 `DSH_CLIENT_VERSION`、可选的 7 位 `DSH_CLIENT_COMMIT_HASH` 与 `DSH_CLIENT_GIT_DIRTY=true` 组装成 `version[-commit][-dirty]`；缺少版本元数据时不显示徽标。此类构建中点击回退的标记或标签会复制该徽标文本而非新建会话，macOS 桌面端同样适用；写入成功后弹出“版本号复制成功”toast。New Session 优先使用作用域操作明确指定的 Workspace，否则使用当前 Session 所属 Workspace，再否则使用最近活跃 Workspace；一个 Workspace 都没有时则清空选择，进入空白 New Session 页面。 展开态的新建会话按钮在键盘聚焦时于右侧以灰色文字显示当前有效绑定，不受设备悬停能力限制；支持悬停的设备也会在悬停时显示。快捷键可见且空间较窄时，居中的图标与文字在快捷键之前渐隐；CSS 为快捷键保留宽度，无需测量按钮。纯图标控件保留使用平台键位样式的 tooltip，侧栏隐藏时常驻的 macOS 头部控件也保持一致。所有控件均提供 `aria-keyshortcuts`。全局访问快照不含 `session/create` 时，品牌行不可点击，New Session 按钮和窗口标题栏中的 New Session 控件都不渲染；每个新建请求仍由 Host 判定。
+ 
++macOS 桌面端展开时默认使用紧凑排布：`sidebar.brand.name` 渲染在 52px 窗口顶栏，单行控制条承载新建会话、面板图标与更多，替代品牌行、新会话胶囊和面板行。顶栏的布局按钮可切回经典排布；选择通过浏览器存储 `dsh.sidebar.compact-layout` 持久化。其他平台保持经典排布。
++
+ ### 全局面板入口
+ 
+ 插件在 root 作用域的 `sidebar.panellist` list 中注册图标组件，提供 `id`、可选 `order`，以及字符串或 locale-aware 的 `label`。同一个 id 寻址布局中 root 作用域 `main` keyed slot 的组件；选择不存在的主面板条目会抛错，并保留当前选中态。标签提供普通可见文字、无障碍名称和折叠提示。展开态导航行的间距为 2px。每一行通过 `usePanelInfo` 读取自己的选中态；DOM 焦点移到搜索框或目录选择器时，显示的面板及其列表项选中态不变。没有面板注册项时，列表及其间距均不渲染。产品随附的组合不注册示例面板。
+diff --git a/packages/client/ui-sidebar/src/client/SidebarRoot.module.css b/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
+index 387b6f804f..5e116c47db 100644
+--- a/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
++++ b/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
+@@ -684,3 +684,82 @@
+     animation: none;
+   }
+ }
++
++/* Compact chrome (macOS desktop): the wordmark rides the window strip and the
++   control bar replaces the brand row, capsule, and stacked panel rows. The
++   strip keeps its 52px geometry so the traffic lights and drag surface do not
++   move; only the content between the strip and the browsing region changes. */
++.compactBrandName {
++  display: flex;
++  align-items: center;
++  flex: 0 1 auto;
++  min-width: 0;
++  height: 24px;
++  margin-left: 76px;
++  margin-right: auto;
++  overflow: hidden;
++}
++
++.compactBrandName svg {
++  display: block;
++  height: var(--sidebar-brand-height, 18px);
++  width: auto;
++}
++
++/* Fullscreen hides the traffic lights, so the wordmark may use their space. */
++:global([data-fullscreen]) .compactBrandName {
++  margin-left: 0;
++}
++
++.layoutToggle {
++  margin-right: 4px;
++}
++
++.iconButton.layoutToggle:focus-visible {
++  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
++  outline-offset: -2px;
++}
++
++.compactBar {
++  display: flex;
++  align-items: center;
++  gap: 4px;
++  flex: none;
++  box-sizing: border-box;
++  padding: 0 4px;
++  margin-bottom: 8px;
++}
++
++.compactBar .newSession {
++  flex: 1;
++  min-width: 0;
++  height: 32px;
++  margin: 0;
++  padding: 6px 10px;
++}
++
++.compactControl {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  flex: none;
++  width: 28px;
++  height: 28px;
++  padding: 0;
++  border: none;
++  border-radius: var(--dsw-radius-sm);
++  background: transparent;
++  color: var(--dsw-alias-label-secondary);
++  cursor: pointer;
++}
++
++@media (hover: hover) {
++  .compactControl:hover {
++    background-color: var(--dsw-alias-interactive-bg-hover);
++  }
++}
++
++.compactControl:focus-visible {
++  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
++  outline-offset: -2px;
++}
+diff --git a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
+index f03ecc32aa..551ee78576 100644
+--- a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
++++ b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
+@@ -16,12 +16,12 @@
+  * scrollbar indirection away while it is elsewhere, so a list the user is not
+  * pointing at carries no bar.
+  */
+-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
++import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+ import clsx from 'clsx'
+ import {
+-  FishLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular,
+-  IconPanelLeftOutlineRegular, focusWithoutRing, isBehindModal, isDarwinDesktop, Menu, ShortcutKeys, Toast, Tooltip, useModalLayer,
+-  writeClipboard,
++  FishLogo, IconAppsAddOutlineRegular, IconCompactOutlineRegular, IconFlatListOutlineRegular,
++  IconNewChatOutlineMedium, IconNewChatOutlineRegular, IconPanelLeftOutlineRegular, focusWithoutRing,
++  isBehindModal, isDarwinDesktop, Menu, ShortcutKeys, Toast, Tooltip, useModalLayer, writeClipboard,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+ import type {
+@@ -54,6 +54,7 @@ function localBuildVersion(): string | undefined {
+ type PanelRowProps =
+   Pick<SidebarPanelMetadata, 'id' | 'label'>
+   & Pick<SidebarSectionOwnerProps, 'wide'>
++  & { readonly compact: boolean }
+   & Pick<PropsRuntime<'sidebar'>, 'usePanelInfo'>
+   & Pick<InjectFace<SidebarRootInjected>, 'selectPanel' | 'trackEntryClick'>
+   & PropsRenderSlots<'sidebar.panellist'>
+@@ -65,13 +66,13 @@ function officialEntry(id: string): 'plugin' | 'cron' | undefined {
+ }
+ 
+ /** Each panel row subscribes only to its own selection state. */
+-function PanelRow({ id, label, wide, usePanelInfo, selectPanel, trackEntryClick, renderSlot }: PanelRowProps) {
++function PanelRow({ id, label, wide, compact, usePanelInfo, selectPanel, trackEntryClick, renderSlot }: PanelRowProps) {
+   const active = usePanelInfo(info => info.activePanelId === id)
+   return (
+-    <Tooltip label={label} delayMs={500} disabled={wide}>
++    <Tooltip label={label} delayMs={500} disabled={wide && !compact}>
+       <button
+         type="button"
+-        className={clsx(css.panelRow, active && css.panelActive)}
++        className={clsx(compact ? css.compactControl : css.panelRow, active && css.panelActive)}
+         aria-label={label}
+         aria-current={active ? 'page' : undefined}
+         onClick={() => {
+@@ -81,9 +82,9 @@ function PanelRow({ id, label, wide, usePanelInfo, selectPanel, trackEntryClick,
+         }}
+       >
+         <span className={css.panelGlyph} aria-hidden="true">
+-          {renderSlot('sidebar.panellist', { size: wide ? 16 : 18, active }, { only: id })}
++          {renderSlot('sidebar.panellist', { size: wide ? (compact ? 18 : 16) : 18, active }, { only: id })}
+         </span>
+-        {wide && (
++        {wide && !compact && (
+           <span className={clsx(css.panelTitle, css.wide)}>
+             {label}
+           </span>
+@@ -95,26 +96,27 @@ function PanelRow({ id, label, wide, usePanelInfo, selectPanel, trackEntryClick,
+ 
+ type PanelMoreMenuProps =
+   Pick<SidebarSectionOwnerProps, 'wide'>
++  & { readonly compact: boolean }
+   & Omit<SidebarPanelActionsOwnerProps, 'onDismiss'>
+   & PropsRenderSlots<'sidebar.panellist.actions'>
+   & Pick<InjectFace<SidebarRootInjected>, 'trackEntryClick'>
+   & { readonly label: string }
+ 
+ /** The panel list's More launcher: a panel-row button whose menu rows come from `sidebar.panellist.actions`. */
+-function PanelMoreMenu({ wide, label, entries, onOpen, onPinnedChange, trackEntryClick, renderSlot }: PanelMoreMenuProps) {
++function PanelMoreMenu({ wide, compact, label, entries, onOpen, onPinnedChange, trackEntryClick, renderSlot }: PanelMoreMenuProps) {
+   const [open, setOpen] = useState(false)
+   const onDismiss = (): void => { setOpen(false) }
+   return (
+     <Menu open={open} onClose={onDismiss} portal autoFocus className={css.moreAnchor} listClassName={css.moreMenu}
+       anchor={(
+-        <Tooltip label={label} delayMs={500} disabled={wide}>
+-          <button type="button" className={css.panelRow} aria-label={label} aria-haspopup="menu" aria-expanded={open}
++        <Tooltip label={label} delayMs={500} disabled={wide && !compact}>
++          <button type="button" className={clsx(compact ? css.compactControl : css.panelRow)} aria-label={label} aria-haspopup="menu" aria-expanded={open}
+             onClick={() => {
+               trackEntryClick({ menu_name: 'more', position: 'sidebar' })
+               setOpen(value => !value)
+             }}>
+-            <span className={css.panelGlyph} aria-hidden="true"><IconAppsAddOutlineRegular size={wide ? 16 : 18} /></span>
+-            {wide && <span className={clsx(css.panelTitle, css.wide)}>{label}</span>}
++            <span className={css.panelGlyph} aria-hidden="true"><IconAppsAddOutlineRegular size={wide ? (compact ? 18 : 16) : 18} /></span>
++            {wide && !compact && <span className={clsx(css.panelTitle, css.wide)}>{label}</span>}
+           </button>
+         </Tooltip>
+       )}>
+@@ -143,6 +145,8 @@ export function SidebarRoot({
+   useEntryActions,
+   useShortcuts,
+   usePanelInfo,
++  useLayoutPreference,
++  setCompactLayout,
+   t,
+   renderSlot,
+ }: SidebarRootComponentProps) {
+@@ -150,6 +154,7 @@ export function SidebarRoot({
+   const unpinned = useEntryPins(ids => ids)
+   const activePanelId = usePanelInfo(info => info.activePanelId)
+   const hasEntryActions = useEntryActions(registered => registered)
++  const compactPreference = useLayoutPreference(snapshot => snapshot.compact)
+   const shortcut = useShortcuts(rows => rows.find(row => row.id === 'sidebar.left.toggle'))
+   const newShortcut = useShortcuts(rows => rows.find(row => row.id === 'session.new'))
+   // A page whose access snapshot excludes starting a Session offers no New Session affordance.
+@@ -253,6 +258,16 @@ export function SidebarRoot({
+   }
+ 
+   const darwinDesktop = isDarwinDesktop()
++  // The compact chrome is a macOS-desktop arrangement: the window strip needs
++  // the traffic-light clearance and the drag surface, so other platforms keep
++  // the classic rows. The preference still persists across launches.
++  const compact = darwinDesktop && compactPreference
++  const compactWide = compact && wide
++  const compactToggleLabel = t('layout.compact')
++  const layoutToggleLabel = compact ? t('layout.switchToClassic') : t('layout.switchToCompact')
++  // The wordmark sits between the traffic lights (x 16–76) and the two 28px
++  // strip controls; its height follows the available column width.
++  const brandHeight = Math.max(14, Math.min(20, (width - 166) / 6.5))
+   // Rail resting state is the whale mark; hovering swaps in the panel icon
+   // (the expand affordance, figma sidebar-hover flow). Expanded it is a plain
+   // panel icon.
+@@ -279,6 +294,99 @@ export function SidebarRoot({
+     </Tooltip>
+   )
+ 
++  // The layout switch sits beside the collapse control in the window strip, so
++  // the same button restores the classic rows from either arrangement.
++  const layoutToggle = darwinDesktop ? (
++    <Tooltip label={layoutToggleLabel} delayMs={500} side="bottom">
++      <button
++        type="button"
++        className={clsx(css.iconButton, css.layoutToggle)}
++        aria-label={compactToggleLabel}
++        aria-pressed={compact}
++        onClick={() => { setCompactLayout(!compact) }}
++      >
++        {compact
++          ? <IconFlatListOutlineRegular size={16} />
++          : <IconCompactOutlineRegular size={16} />}
++      </button>
++    </Tooltip>
++  ) : null
++
++  const newSession = canStartSession && (
++    // The label fades before the hover/focus shortcut, including on translucent backgrounds.
++    <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
++      <button
++        type="button"
++        className={clsx(css.newSession, compactWide && css.compactNewSession)}
++        aria-label={t('session.new.label')}
++        aria-keyshortcuts={newShortcut?.aria}
++        onClick={openNewSession}
++      >
++        <span className={css.newSessionLabelMask}><span className={css.newSessionContent}>
++          {wide
++            ? <IconNewChatOutlineMedium size={14} />
++            : <IconNewChatOutlineRegular size={windowsTitlebar ? 16 : 18} />}
++          {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
++        </span></span>
++        {wide && newShortcut !== undefined && newShortcut.keys.length > 0 && <span className={css.newSessionShortcut} aria-hidden="true">
++          <ShortcutKeys keys={newShortcut.keys} />
++        </span>}
++      </button>
++    </Tooltip>
++  )
++
++  const visiblePanels = panels.filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id))
++  const panelRows = visiblePanels.map(({ id, label }) => (
++    <PanelRow
++      key={id}
++      id={id}
++      label={label}
++      wide={wide}
++      compact={compactWide}
++      usePanelInfo={usePanelInfo}
++      selectPanel={selectPanel}
++      trackEntryClick={trackEntryClick}
++      renderSlot={renderSlot}
++    />
++  ))
++  const moreMenu = hasEntryActions ? (
++    <PanelMoreMenu
++      wide={wide}
++      compact={compactWide}
++      label={t('panels.more')}
++      entries={panels.filter(({ id }) => id !== FIXED_PANEL_ID)
++        .map(({ id, label }) => ({ id, label, pinned: !unpinned.includes(id), active: id === activePanelId }))}
++      onOpen={(id) => {
++        const entry = officialEntry(id)
++        if (entry !== undefined) trackEntryClick({ menu_name: entry, position: 'sidebar_more' })
++        const panel = panels.find(candidate => candidate.id === id)
++        if (panel !== undefined) selectPanel(panel.id)
++      }}
++      onPinnedChange={setPinned}
++      trackEntryClick={trackEntryClick}
++      renderSlot={renderSlot}
++    />
++  ) : null
++  // Compact chrome: one control bar under the window strip replaces the brand
++  // row, the full New Session capsule, and the three panel rows.
++  const chrome = compactWide ? (
++    <div className={css.compactBar}>
++      {newSession}
++      {panels.length > 0 && panelRows}
++      {panels.length > 0 && moreMenu}
++    </div>
++  ) : (
++    <>
++      {newSession}
++      {panels.length > 0 && (
++        <nav className={css.panelList} aria-label={t('panels.label')}>
++          {panelRows}
++          {moreMenu}
++        </nav>
++      )}
++    </>
++  )
++
+   return (
+     <div
+       ref={column}
+@@ -301,8 +409,24 @@ export function SidebarRoot({
+     >
+       {/* macOS hiddenInset titlebar: the strip shares the row with the
+           traffic lights and keeps the toggle at the sidebar's top-right. */}
+-      {darwinDesktop && <div className={css.topStrip} data-window-drag>{toggle}</div>}
+-      <div className={css.logoRow} data-window-drag>
++      {darwinDesktop && (
++        <div className={css.topStrip} data-window-drag>
++          {compactWide && (
++            <span
++              className={css.compactBrandName}
++              style={{ '--sidebar-brand-height': `${brandHeight}px` } as CSSProperties}
++              aria-hidden="true"
++            >
++              {renderSlot('sidebar.brand.name', {}, {
++                fallback: <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>,
++              })}
++            </span>
++          )}
++          {layoutToggle}
++          {toggle}
++        </div>
++      )}
++      {!compactWide && <div className={css.logoRow} data-window-drag>
+         {/* Expanded, the brand doubles as a New Session shortcut while the
+             access snapshot allows `session/create` — except on
+             macOS, where it stays part of the logo row's window-drag surface
+@@ -351,64 +475,9 @@ export function SidebarRoot({
+             )
+         })()}
+         {!darwinDesktop && toggle}
+-      </div>
++      </div>}
+ 
+-      {/* The label fades before the hover/focus shortcut, including on translucent backgrounds. */}
+-      {canStartSession && (
+-        <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
+-          <button
+-            type="button"
+-            className={css.newSession}
+-            aria-label={t('session.new.label')}
+-            aria-keyshortcuts={newShortcut?.aria}
+-            onClick={openNewSession}
+-          >
+-            <span className={css.newSessionLabelMask}><span className={css.newSessionContent}>
+-              {wide
+-                ? <IconNewChatOutlineMedium size={14} />
+-                : <IconNewChatOutlineRegular size={windowsTitlebar ? 16 : 18} />}
+-              {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
+-            </span></span>
+-            {wide && newShortcut !== undefined && newShortcut.keys.length > 0 && <span className={css.newSessionShortcut} aria-hidden="true">
+-              <ShortcutKeys keys={newShortcut.keys} />
+-            </span>}
+-          </button>
+-        </Tooltip>
+-      )}
+-
+-      {panels.length > 0 && (
+-        <nav className={css.panelList} aria-label={t('panels.label')}>
+-          {panels.filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id)).map(({ id, label }) => (
+-            <PanelRow
+-              key={id}
+-              id={id}
+-              label={label}
+-              wide={wide}
+-              usePanelInfo={usePanelInfo}
+-              selectPanel={selectPanel}
+-              trackEntryClick={trackEntryClick}
+-              renderSlot={renderSlot}
+-            />
+-          ))}
+-          {hasEntryActions && (
+-            <PanelMoreMenu
+-              wide={wide}
+-              label={t('panels.more')}
+-              entries={panels.filter(({ id }) => id !== FIXED_PANEL_ID)
+-                .map(({ id, label }) => ({ id, label, pinned: !unpinned.includes(id), active: id === activePanelId }))}
+-              onOpen={(id) => {
+-                const entry = officialEntry(id)
+-                if (entry !== undefined) trackEntryClick({ menu_name: entry, position: 'sidebar_more' })
+-                const panel = panels.find(candidate => candidate.id === id)
+-                if (panel !== undefined) selectPanel(panel.id)
+-              }}
+-              onPinnedChange={setPinned}
+-              trackEntryClick={trackEntryClick}
+-              renderSlot={renderSlot}
+-            />
+-          )}
+-        </nav>
+-      )}
++      {chrome}
+ 
+       {/* The browsing region fills the column between the controls and the
+           foot in both states; its rail icon column rides the same slot. */}
+diff --git a/packages/client/ui-sidebar/src/client/contract/slots.ts b/packages/client/ui-sidebar/src/client/contract/slots.ts
+index 7b6662b6c7..cad37e5ead 100644
+--- a/packages/client/ui-sidebar/src/client/contract/slots.ts
++++ b/packages/client/ui-sidebar/src/client/contract/slots.ts
+@@ -77,6 +77,12 @@ export interface SidebarPanelIconOwnerProps {
+   active: boolean
+ }
+ 
++/** Persisted sidebar chrome preference: compact controls or the classic rows. */
++export interface SidebarLayoutPreference {
++  /** True renders the compact chrome; false restores the classic rows. */
++  compact: boolean
++}
++
+ /** Serializable metadata for one active global panel list registration. */
+ export interface SidebarPanelMetadata {
+   /** List id and matching main panel key. */
+@@ -167,6 +173,11 @@ export type SidebarRootInjected = {
+   setPinned: (id: string, pinned: boolean) => void
+   /** Record activation of an official navigation control without changing navigation. */
+   trackEntryClick: (attributes: ProductEventMap['sidebar_menu_click']) => void
++  /**
++   * Persist the compact/classic chrome preference.
++   * @param compact - True for the compact chrome; false for the classic rows.
++   */
++  setCompactLayout: (compact: boolean) => void
+   /** Private reactive sources bound to framework selector hooks. */
+   hooks: {
+     panels: ObservableSnapshot<readonly SidebarPanelMetadata[]>
+@@ -175,6 +186,8 @@ export type SidebarRootInjected = {
+     entryPins: ObservableSnapshot<readonly string[]>
+     /** Whether `sidebar.panellist.actions` has registrations. */
+     entryActions: ObservableSnapshot<boolean>
++    /** Persisted compact/classic chrome preference. */
++    layoutPreference: ObservableSnapshot<SidebarLayoutPreference>
+   }
+ }
+ 
+diff --git a/packages/client/ui-sidebar/src/client/index.ts b/packages/client/ui-sidebar/src/client/index.ts
+index f45c249e8f..2df1fee433 100644
+--- a/packages/client/ui-sidebar/src/client/index.ts
++++ b/packages/client/ui-sidebar/src/client/index.ts
+@@ -10,7 +10,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
+ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+ // Type-only: pulls the Session root standard-props merge.
+ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+-import type { SidebarPanelMetadata, SidebarRootInjected } from './contract/slots.ts'
++import type { SidebarLayoutPreference, SidebarPanelMetadata, SidebarRootInjected } from './contract/slots.ts'
+ import { createPanelPins } from './panel-pins.ts'
+ import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
+ import { SidebarRoot } from './SidebarRoot.tsx'
+@@ -18,8 +18,9 @@ import { en, ja, es, fr, de, ru, pt, zh, type SidebarKey } from './locales.ts'
+ 
+ export type {
+   SidebarBrandMarkOwnerProps, SidebarBrandNameOwnerProps, SidebarFooterActionOwnerProps,
+-  SidebarPanelActionEntry, SidebarPanelActionsOwnerProps, SidebarPanelIconOwnerProps, SidebarPanelMetadata,
+-  SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps, SidebarSettingsOwnerProps,
++  SidebarLayoutPreference, SidebarPanelActionEntry, SidebarPanelActionsOwnerProps, SidebarPanelIconOwnerProps,
++  SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
++  SidebarSettingsOwnerProps,
+ } from './contract/slots.ts'
+ export type { SidebarKey } from './locales.ts'
+ 
+@@ -67,6 +68,12 @@ export function apply(ctx: ClientContext): void {
+     getSnapshot: () => ctx.slots.entriesOfSlot('sidebar.panellist.actions').length > 0,
+     subscribe: (listener: () => void) => ctx.slots.subscribe('sidebar.panellist.actions', listener),
+   }
++  // Browser-local chrome preference: the compact controls are the default, and
++  // the classic rows remain one toggle away.
++  const layoutPreference = createSnapshotStore<SidebarLayoutPreference>(
++    { compact: true },
++    { persist: { name: 'dsh.sidebar.compact-layout' } },
++  )
+ 
+   const injectProps = (): SidebarRootInjected => ({
+     // The shell's New Session button rides the Workspace UI's shared action
+@@ -76,7 +83,8 @@ export function apply(ctx: ClientContext): void {
+     selectPanel: (id) => { ctx.layout.selectPanel(id) },
+     setPinned: panelPins.setPinned,
+     trackEntryClick: (attributes) => { ctx.get('productAnalytics')?.track('sidebar_menu_click', attributes) },
+-    hooks: { panels, shortcuts: ctx.shortcuts.catalog, entryPins: panelPins.unpinned, entryActions },
++    setCompactLayout: (compact) => { layoutPreference.set({ compact }) },
++    hooks: { panels, shortcuts: ctx.shortcuts.catalog, entryPins: panelPins.unpinned, entryActions, layoutPreference },
+   })
+   ctx.slots.inject('sidebar', () => ctx.slots.register({
+     name: 'sidebar',
+diff --git a/packages/client/ui-sidebar/src/client/locales.ts b/packages/client/ui-sidebar/src/client/locales.ts
+index 7dd30be7ac..ffcf80f251 100644
+--- a/packages/client/ui-sidebar/src/client/locales.ts
++++ b/packages/client/ui-sidebar/src/client/locales.ts
+@@ -10,6 +10,9 @@ export const zh = {
+   'navigation.label': '导航',
+   'panels.more': '更多',
+   'version.copied': '版本号复制成功',
++  'layout.compact': '紧凑布局',
++  'layout.switchToClassic': '切换到经典布局',
++  'layout.switchToCompact': '切换到紧凑布局',
+ } satisfies Record<string, string>
+ 
+ /** The sidebar namespace key union. */
+@@ -25,6 +28,9 @@ export const en = {
+   'navigation.label': 'Navigation',
+   'panels.more': 'More',
+   'version.copied': 'Version copied',
++  'layout.compact': 'Compact layout',
++  'layout.switchToClassic': 'Switch to classic layout',
++  'layout.switchToCompact': 'Switch to compact layout',
+ } satisfies Record<SidebarKey, string>
+ 
+ /** Japanese copy, checked against the English keys. */
+@@ -37,6 +43,9 @@ export const ja = {
+   'navigation.label': 'ナビゲーション',
+   'panels.more': 'その他',
+   'version.copied': 'バージョンをコピーしました',
++  'layout.compact': 'コンパクトレイアウト',
++  'layout.switchToClassic': 'クラシックレイアウトに切り替え',
++  'layout.switchToCompact': 'コンパクトレイアウトに切り替え',
+ } satisfies Record<keyof typeof en, string>
+ 
+ /** Spanish dictionary, checked against the English keys. */
+@@ -49,6 +58,9 @@ export const es = {
+   'navigation.label': 'Navegación',
+   'panels.more': 'Más',
+   'version.copied': 'Versión copiada',
++  'layout.compact': 'Diseño compacto',
++  'layout.switchToClassic': 'Cambiar al diseño clásico',
++  'layout.switchToCompact': 'Cambiar al diseño compacto',
+ } satisfies Record<keyof typeof en, string>
+ 
+ /** French dictionary, checked against the English keys. */
+@@ -61,6 +73,9 @@ export const fr = {
+   'navigation.label': 'Navigation',
+   'panels.more': 'Plus',
+   'version.copied': 'Version copiée',
++  'layout.compact': 'Disposition compacte',
++  'layout.switchToClassic': 'Passer à la disposition classique',
++  'layout.switchToCompact': 'Passer à la disposition compacte',
+ } satisfies Record<keyof typeof en, string>
+ 
+ /** German dictionary, checked against the English keys. */
+@@ -73,6 +88,9 @@ export const de = {
+   'navigation.label': 'Navigation',
+   'panels.more': 'Mehr',
+   'version.copied': 'Version kopiert',
++  'layout.compact': 'Kompakte Ansicht',
++  'layout.switchToClassic': 'Zur klassischen Ansicht wechseln',
++  'layout.switchToCompact': 'Zur kompakten Ansicht wechseln',
+ } satisfies Record<keyof typeof en, string>
+ 
+ /** Russian dictionary, checked against the English keys. */
+@@ -85,6 +103,9 @@ export const ru = {
+   'navigation.label': 'Навигация',
+   'panels.more': 'Ещё',
+   'version.copied': 'Версия скопирована',
++  'layout.compact': 'Компактный макет',
++  'layout.switchToClassic': 'Переключить на классический макет',
++  'layout.switchToCompact': 'Переключить на компактный макет',
+ } satisfies Record<keyof typeof en, string>
+ 
+ /** Portuguese dictionary, checked against the English keys. */
+@@ -97,4 +118,7 @@ export const pt = {
+   'navigation.label': 'Navegação',
+   'panels.more': 'Mais',
+   'version.copied': 'Versão copiada',
++  'layout.compact': 'Layout compacto',
++  'layout.switchToClassic': 'Mudar para o layout clássico',
++  'layout.switchToCompact': 'Mudar para o layout compacto',
+ } satisfies Record<keyof typeof en, string>
+diff --git a/packages/client/ui-sidebar/tests/apply.client.spec.tsx b/packages/client/ui-sidebar/tests/apply.client.spec.tsx
+index bc74685410..dac6237d12 100644
+--- a/packages/client/ui-sidebar/tests/apply.client.spec.tsx
++++ b/packages/client/ui-sidebar/tests/apply.client.spec.tsx
+@@ -81,10 +81,13 @@ describe('ui-sidebar apply', () => {
+     expect(leading[0]!.locale).toBe('sidebar')
+     expect(leading[0]!.inject).toBe(b.slots.entries('sidebar')[0]!.inject)
+     const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
+-    expect(Object.keys(injected)).toEqual(['startSession', 'toggleSidebar', 'selectPanel', 'setPinned', 'trackEntryClick', 'hooks'])
++    expect(Object.keys(injected)).toEqual(['startSession', 'toggleSidebar', 'selectPanel', 'setPinned', 'trackEntryClick', 'setCompactLayout', 'hooks'])
+     expect(injected.hooks.panels.getSnapshot()).toEqual([])
+     expect(injected.hooks.entryPins.getSnapshot()).toEqual([])
+     expect(injected.hooks.entryActions.getSnapshot()).toBe(false)
++    expect(injected.hooks.layoutPreference.getSnapshot()).toEqual({ compact: true })
++    injected.setCompactLayout(false)
++    expect(injected.hooks.layoutPreference.getSnapshot()).toEqual({ compact: false })
+     expect(b.slots.entries('main')).toEqual([])
+     // Both arms delegate to the Workspace UI's shared New Session action.
+     injected.startSession('workspace' as never)
+diff --git a/packages/client/ui-sidebar/tests/pointer-scrollbars.client.spec.tsx b/packages/client/ui-sidebar/tests/pointer-scrollbars.client.spec.tsx
+index 6e15b94baa..e7bd33e79a 100644
+--- a/packages/client/ui-sidebar/tests/pointer-scrollbars.client.spec.tsx
++++ b/packages/client/ui-sidebar/tests/pointer-scrollbars.client.spec.tsx
+@@ -49,6 +49,7 @@ function mountColumn(): { column: HTMLElement; quiet: () => boolean } {
+       useShortcuts={selector => selector([])}
+       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      useLayoutPreference={selector => selector({ compact: false })} setCompactLayout={vi.fn()}
+       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
+       renderSlot={((_key: string, owner: SidebarSectionOwnerProps) =>
+         <div data-testid="region" data-wide={owner.wide} />) as SidebarRootComponentProps['renderSlot']}
+diff --git a/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx b/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx
+index ee09e12ce5..4561ce6a76 100644
+--- a/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx
++++ b/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx
+@@ -45,15 +45,25 @@ function makeHeaderProps(): HeaderLeadingControlsProps {
+     usePanelInfo, useResource, useWorkspaces: neverHook, ...allowAllAccess,
+     usePanels: selector => selector([]), useShortcuts: selector => selector([]),
+     useEntryPins: selector => selector([]), useEntryActions: selector => selector(false),
++    useLayoutPreference: selector => selector({ compact: false }), setCompactLayout: vi.fn(),
+     selectPanel: vi.fn(), setPinned: vi.fn(), toggleSidebar: vi.fn(),
+     startSession: vi.fn(), trackEntryClick: vi.fn(), t,
+   }
+ }
+ 
+-function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts = [], content }: {
++/** Classic-layout share for direct renders that do not exercise the toggle. */
++function classicLayout(): Pick<SidebarRootComponentProps, 'useLayoutPreference' | 'setCompactLayout'> {
++  return {
++    useLayoutPreference: selector => selector({ compact: false }),
++    setCompactLayout: vi.fn(),
++  }
++}
++
++function mountShell({ collapsed = false, width = 300, drawer = false, compact = false, shortcuts = [], content }: {
+   collapsed?: boolean
+   width?: number
+   drawer?: boolean
++  compact?: boolean
+   shortcuts?: readonly ShortcutCatalogEntry[]
+   content?: ReactNode
+ } = {}) {
+@@ -66,38 +76,44 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts
+   const brandMark = <span data-testid="custom-brand-mark">M</span>
+   const brandName = <span data-testid="custom-brand-name">Custom Brand</span>
+   let current = { collapsed, width, drawer }
+-  const root = () => (
+-    <SidebarRoot
+-      drawer={current.drawer}
+-      collapsed={current.collapsed} width={current.width}
+-      useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
+-      usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
+-      useEntryActions={selector => selector(false)} setPinned={vi.fn()}
+-      useShortcuts={selector => selector(shortcuts)}
+-      useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+-      {...allowAllAccess}
+-      startSession={startSession} toggleSidebar={toggleSidebar} trackEntryClick={trackEntryClick} t={t}
+-      renderSlot={((
+-        key: string,
+-        owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSettingsOwnerProps,
+-      ) => {
+-        if (key === 'sidebar.brand.mark') return brandMark
+-        if (key === 'sidebar.brand.name') return brandName
+-        if (key === 'sidebar.toggle.badge') return null
+-        if (key === 'sidebar.settings') {
+-          settingsOwner = owner
+-          return <div data-testid="settings-seat" data-wide={owner.wide} />
+-        }
+-        if (key === 'sidebar.footer.action') {
+-          footerActionOwner = owner
+-          return <div data-testid="footer-action-seat" data-wide={owner.wide} />
+-        }
+-        regionOwner = owner as SidebarSectionOwnerProps
+-        return <div data-testid="region" data-wide={owner.wide}>{content}</div>
+-      }) as SidebarRootComponentProps['renderSlot']}
+-    />
+-  )
+-  const view = render(root())
++  const view = render(<ShellHost />)
++
++  function ShellHost() {
++    const [compactState, setCompactState] = useState(compact)
++    return (
++      <SidebarRoot
++        drawer={current.drawer}
++        collapsed={current.collapsed} width={current.width}
++        useSessions={neverHook} useSessionStatus={useSessionStatus} useSessionRetainInfo={neverHook}
++        usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
++        useEntryActions={selector => selector(false)} setPinned={vi.fn()}
++        useShortcuts={selector => selector(shortcuts)}
++        useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
++        {...allowAllAccess}
++        useLayoutPreference={selector => selector({ compact: compactState })}
++        setCompactLayout={setCompactState}
++        startSession={startSession} toggleSidebar={toggleSidebar} trackEntryClick={trackEntryClick} t={t}
++        renderSlot={((
++          key: string,
++          owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSettingsOwnerProps,
++        ) => {
++          if (key === 'sidebar.brand.mark') return brandMark
++          if (key === 'sidebar.brand.name') return brandName
++          if (key === 'sidebar.toggle.badge') return null
++          if (key === 'sidebar.settings') {
++            settingsOwner = owner
++            return <div data-testid="settings-seat" data-wide={owner.wide} />
++          }
++          if (key === 'sidebar.footer.action') {
++            footerActionOwner = owner
++            return <div data-testid="footer-action-seat" data-wide={owner.wide} />
++          }
++          regionOwner = owner as SidebarSectionOwnerProps
++          return <div data-testid="region" data-wide={owner.wide}>{content}</div>
++        }) as SidebarRootComponentProps['renderSlot']}
++      />
++    )
++  }
+   return {
+     startSession,
+     toggleSidebar,
+@@ -116,7 +132,7 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts
+     },
+     rerender(next: Partial<typeof current>) {
+       current = { ...current, ...next }
+-      view.rerender(root())
++      view.rerender(<ShellHost />)
+     },
+   }
+ }
+@@ -140,6 +156,7 @@ describe('SidebarRoot shell', () => {
+       usePanelInfo={neverHook} useSessions={neverHook} useSessionStatus={neverHook}
+       useSessionRetainInfo={neverHook} useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      {...classicLayout()}
+       usePanels={select => select([])} useEntryPins={select => select([])}
+       useEntryActions={select => select(false)} setPinned={vi.fn()} useShortcuts={select => select([shortcut])} />)
+     const button = screen.getByRole('button', { name: 'New session' })
+@@ -188,6 +205,7 @@ describe('SidebarRoot shell', () => {
+       useShortcuts={selector => selector([])}
+       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      {...classicLayout()}
+       useRemoteAccess={useRemoteAccess}
+       startSession={startSession} toggleSidebar={toggleSidebar} trackEntryClick={vi.fn()} t={t}
+       renderSlot={((key: string) => {
+@@ -220,6 +238,7 @@ describe('SidebarRoot shell', () => {
+       useShortcuts={selector => selector([])}
+       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      {...classicLayout()}
+       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
+       renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
+         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
+@@ -244,6 +263,7 @@ describe('SidebarRoot shell', () => {
+       useShortcuts={selector => selector([])}
+       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      {...classicLayout()}
+       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
+       renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
+         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
+@@ -272,6 +292,7 @@ describe('SidebarRoot shell', () => {
+       useShortcuts={selector => selector([])}
+       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      {...classicLayout()}
+       startSession={startSession} toggleSidebar={vi.fn()} trackEntryClick={trackEntryClick} t={t}
+       renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
+         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
+@@ -323,6 +344,7 @@ describe('SidebarRoot shell', () => {
+       useShortcuts={selector => selector([])}
+       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      {...classicLayout()}
+       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
+       renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
+         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
+@@ -387,6 +409,7 @@ describe('SidebarRoot shell', () => {
+       useShortcuts={selector => selector([])}
+       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
+       {...allowAllAccess}
++      {...classicLayout()}
+       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
+       renderSlot={((key: string) => key === 'sidebar.toggle.badge'
+         ? <Tooltip label="Update — V1.2.3"><span data-testid="badge" /></Tooltip>
+@@ -422,6 +445,26 @@ it('keeps the macOS sidebar toggle in its top strip', () => {
+   expect(shell.trackEntryClick).toHaveBeenCalledExactlyOnceWith({ menu_name: 'new_session', position: 'sidebar' })
+ })
+ 
++it('switches the macOS chrome between compact and classic', () => {
++  document.documentElement.dataset.platform = 'darwin'
++  mountShell({ compact: true })
++  const layoutToggle = (): HTMLElement => screen.getByRole('button', { name: en['layout.compact'] })
++  expect(layoutToggle().getAttribute('aria-pressed')).toBe('true')
++  expect(document.querySelector('[class*="compactBar"]')).not.toBeNull()
++  expect(document.querySelector('[class*="logoRow"]')).toBeNull()
++  expect(screen.getByTestId('custom-brand-name').closest('[class*="compactBrandName"]')).not.toBeNull()
++
++  fireEvent.click(layoutToggle())
++  expect(layoutToggle().getAttribute('aria-pressed')).toBe('false')
++  expect(document.querySelector('[class*="compactBar"]')).toBeNull()
++  expect(document.querySelector('[class*="logoRow"]')).not.toBeNull()
++  expect(screen.getByTestId('custom-brand-name').closest('[class*="compactBrandName"]')).toBeNull()
++
++  fireEvent.click(layoutToggle())
++  expect(layoutToggle().getAttribute('aria-pressed')).toBe('true')
++  expect(document.querySelector('[class*="compactBar"]')).not.toBeNull()
++})
++
+ it('wires the shell.leading controls to the shared sidebar actions', () => {
+   document.documentElement.dataset.platform = 'darwin'
+   const toggleSidebar = vi.fn()
+-- 
+2.54.0 (Apple Git-157)
+

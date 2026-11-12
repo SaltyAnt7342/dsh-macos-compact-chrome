@@ -72,6 +72,12 @@ localStorage['dsh-macos-compact-chrome'] = 'off'
 
 迭代方式：把本目录作为 bundle 安装（`plugin_manager` 从本地路径安装会软链目录），改 `client.js`，然后在「插件」页把该 bundle 关掉再打开，即可重新加载浏览器模块。
 
+## 源码版构建
+
+`tooling/` 提供另一条路线：直接改 `ui-sidebar` 源码，重新打包整个 App。它会产出本地未签名 DMG，并带每日检查与自动重建安装的脚本。
+
+这条路线需要本机有官方源码克隆和完整构建环境，适合自己长期使用；只想改外观的话，用上面的插件即可。补丁、更新器和上游 PR 草稿都在 [`tooling/`](tooling/README.md)，版本变化见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 许可
 
 MIT。与 DeepSeek 官方无隶属或背书关系；DeepSeek Harness 本身由 DeepSeek 以 MIT 许可发布。

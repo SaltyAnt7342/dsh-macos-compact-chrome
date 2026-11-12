@@ -1,3 +1,11 @@
 node_modules/
 *.tgz
+*.dmg
 .DS_Store
+
+# Build outputs, logs and backups from tooling/updater
+tooling/updater/logs/
+tooling/updater/.backup/
+tooling/updater/notified.txt
+tooling/updater/*.log
+tooling/updater/git-report.txt
