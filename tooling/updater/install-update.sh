@@ -12,11 +12,12 @@ DMG=""
 YES=0
 DRY_RUN=0
 LAUNCH=1
+QUIT=1
 MOUNT=""
 
 usage() {
   cat <<'EOF'
-用法: install-update.sh [--dmg <path>] [--target <app>] [--yes] [--dry-run] [--no-launch]
+用法: install-update.sh [--dmg <path>] [--target <app>] [--yes] [--dry-run] [--no-launch] [--no-quit]
 
 默认使用 dsh-sidebar-preview 下最新的 DSH-Compact-*.dmg，安装到
 /Applications/DSH 紧凑版.app，然后重新打开。
@@ -30,6 +31,7 @@ while [ "$#" -gt 0 ]; do
     --yes) YES=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --no-launch) LAUNCH=0; shift ;;
+    --no-quit) QUIT=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "未知参数: $1"; usage; exit 2 ;;
   esac
@@ -61,12 +63,16 @@ CANONICAL=0
 # process command line may still carry an older bundle name. Match the exact
 # target path as well as any compact bundle path.
 compact_running() {
-  # pgrep -f can miss the main executable when its path contains non-ASCII
-  # characters on macOS. Match the executable column in ps instead, excluding
-  # helper processes whose path continues into Frameworks or runtime arguments.
-  /bin/ps -axo command= | awk -v executable="$TARGET/Contents/MacOS/DeepSeek Harness" '
-    index($0, "紧凑版.app/Contents/MacOS/DeepSeek Harness") == 1 ||
-    index($0, executable) == 1 { found = 1 }
+  # Match the main executable only: helpers continue into Frameworks, and the
+  # Host child repeats the path as an argument. Try pgrep first, then the
+  # process table, because either can miss a non-ASCII bundle path.
+  pgrep -f "紧凑版.app/Contents/MacOS/DeepSeek Harness( |$)" >/dev/null 2>&1 && return 0
+  /bin/ps -axo command= 2>/dev/null | awk -v executable="$TARGET/Contents/MacOS/DeepSeek Harness" '
+    { line = $0
+      sub(/^ +/, "", line)
+      if (index(line, "紧凑版.app/Contents/MacOS/DeepSeek Harness") == 1) { found = 1 }
+      if (index(line, executable) == 1) { found = 1 }
+    }
     END { exit found ? 0 : 1 }
   '
 }
@@ -118,7 +124,7 @@ xattr -dr com.apple.quarantine "$STAGE" 2>/dev/null || true
 codesign --verify --deep --strict "$STAGE" >/dev/null 2>&1 \
   || echo "  提示：本地未签名构建的签名校验未通过，通常仍可运行。"
 
-if [ "$CANONICAL" = 1 ] && compact_running; then
+if [ "$CANONICAL" = 1 ] && [ "$QUIT" = 1 ] && compact_running; then
   echo "→ 关闭紧凑版…"
   # Target the bundle by path: the official app shares the same bundle id.
   env -u ELECTRON_RUN_AS_NODE osascript -e "tell application \"$TARGET\" to quit" >/dev/null 2>&1 || true
@@ -164,6 +170,15 @@ if [ "$CANONICAL" = 1 ] && [ "$LAUNCH" = 1 ]; then
     rm -rf "$BACKUP"
     echo "→ 已重新打开紧凑版"
   else
+    # The swap succeeded and the installed bundle reports the new version, so a
+    # launch that cannot be observed is not grounds for discarding it: quitting
+    # the app also ends the process that started this installer.
+    if [ "$(defaults read "$TARGET/Contents/Info" CFBundleShortVersionString 2>/dev/null)" = "$SRC_VERSION" ]; then
+      echo "⚠ 未能确认紧凑版已启动，已保留 $SRC_VERSION；请手动打开一次" >&2
+      rm -rf "$BACKUP"
+      log "installed $SRC_VERSION (launch unconfirmed)"
+      exit 0
+    fi
     echo "✗ 新版本未能启动，正在恢复旧版…" >&2
     rm -rf "$TARGET"
     if [ -d "$BACKUP" ]; then

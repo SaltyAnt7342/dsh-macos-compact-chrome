@@ -1,6 +1,6 @@
 {
-  "baseVersion": "0.2.2-rc.2",
-  "baseTag": "dsh-v0.2.2-rc.2",
-  "builtAt": "2026-11-12",
-  "installer": "DSH-Compact-0.2.2-rc.2-arm64.dmg"
+  "baseVersion": "0.2.2-rc.3",
+  "baseTag": "dsh-v0.2.2-rc.3",
+  "builtAt": "2026-11-14",
+  "installer": "DSH-Compact-0.2.2-rc.3-arm64.dmg"
 }

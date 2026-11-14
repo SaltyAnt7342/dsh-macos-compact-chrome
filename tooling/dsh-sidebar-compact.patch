@@ -1,5 +1,5 @@
 diff --git a/packages/client/ui-sidebar/README.md b/packages/client/ui-sidebar/README.md
-index ea682c7e41..cca1cba549 100644
+index 3579fd325d..1a25f19443 100644
 --- a/packages/client/ui-sidebar/README.md
 +++ b/packages/client/ui-sidebar/README.md
 @@ -37,6 +37,8 @@ When the sidebar is fully hidden, Web shows only the header's sidebar opener. De
@@ -12,7 +12,7 @@ index ea682c7e41..cca1cba549 100644
  
  Plugins add an icon component to the root-scoped `sidebar.panellist` list with an `id`, optional `order`, and a string or locale-aware `label`. The same id addresses the component registered in the layout's root-scoped `main` keyed slot; selecting a missing main entry throws without changing the current selection. The label supplies plain visible text, the accessible name, and the collapsed tooltip. Expanded navigation rows are 32px high with a 2px gap; collapsed rail controls remain 36px high with a 12px gap. Each row reads its own selected state through `usePanelInfo`; moving DOM focus to search or a directory picker does not change the displayed panel or its selected row. With no panel registrations, neither the list nor spacing for it is rendered. The shipped composition registers no example panel.
 diff --git a/packages/client/ui-sidebar/README.zh.md b/packages/client/ui-sidebar/README.zh.md
-index 58ccbebef2..9edf2ce635 100644
+index b6e720340a..4a60499565 100644
 --- a/packages/client/ui-sidebar/README.zh.md
 +++ b/packages/client/ui-sidebar/README.zh.md
 @@ -37,6 +37,8 @@ dsh Web 客户端的侧边栏让用户识别当前构建、启动新会话、将
@@ -25,10 +25,10 @@ index 58ccbebef2..9edf2ce635 100644
  
  插件在 root 作用域的 `sidebar.panellist` list 中注册图标组件，提供 `id`、可选 `order`，以及字符串或 locale-aware 的 `label`。同一个 id 寻址布局中 root 作用域 `main` keyed slot 的组件；选择不存在的主面板条目会抛错，并保留当前选中态。标签提供普通可见文字、无障碍名称和折叠提示。展开态导航行高 32px，间距为 2px；折叠窄栏控件保持 36px 高和 12px 间距。每一行通过 `usePanelInfo` 读取自己的选中态；DOM 焦点移到搜索框或目录选择器时，显示的面板及其列表项选中态不变。没有面板注册项时，列表及其间距均不渲染。产品随附的组合不注册示例面板。
 diff --git a/packages/client/ui-sidebar/src/client/SidebarRoot.module.css b/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
-index a9de41653f..34727685b0 100644
+index 3d2e7aa6c9..ea03161ab5 100644
 --- a/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
 +++ b/packages/client/ui-sidebar/src/client/SidebarRoot.module.css
-@@ -211,7 +211,8 @@
+@@ -216,7 +216,8 @@
  /* The strip's full 52px foot leaves the wordmark too low; the content column
     tucks 12px back under it, still clear of the toggle (28px control centered
     in the strip ends at y 40). */
@@ -38,7 +38,7 @@ index a9de41653f..34727685b0 100644
    margin-top: -12px;
  }
  
-@@ -819,3 +820,118 @@
+@@ -842,3 +843,124 @@
      animation: none;
    }
  }
@@ -113,6 +113,12 @@ index a9de41653f..34727685b0 100644
 +  margin-top: 0;
 +}
 +
++.compactBar .newSessionRow {
++  flex: 1;
++  min-width: 0;
++  margin: 0;
++}
++
 +.compactBar .newSession {
 +  flex: 1;
 +  min-width: 0;
@@ -158,7 +164,7 @@ index a9de41653f..34727685b0 100644
 +  outline-offset: -2px;
 +}
 diff --git a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
-index b573b19cc8..24a9bcc38d 100644
+index c8193d2366..5cbfd13768 100644
 --- a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
 +++ b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
 @@ -18,12 +18,12 @@
@@ -295,7 +301,7 @@ index b573b19cc8..24a9bcc38d 100644
    // Rail resting state is the whale mark; hovering swaps in the panel icon
    // (the expand affordance, figma sidebar-hover flow). Expanded it is a plain
    // panel icon.
-@@ -304,6 +322,99 @@ export function SidebarRoot({
+@@ -304,6 +322,104 @@ export function SidebarRoot({
      </Tooltip>
    )
  
@@ -317,8 +323,8 @@ index b573b19cc8..24a9bcc38d 100644
 +    </Tooltip>
 +  ) : null
 +
-+  const newSession = canStartSession && (
-+    // The label fades before the hover/focus shortcut, including on translucent backgrounds.
++  // The label fades before the hover/focus shortcut, including on translucent backgrounds.
++  const newSessionButton = (
 +    <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
 +      <button
 +        type="button"
@@ -338,6 +344,11 @@ index b573b19cc8..24a9bcc38d 100644
 +        </span>}
 +      </button>
 +    </Tooltip>
++  )
++  const newSession = canStartSession && (
++    <div className={css.newSessionRow}>
++      {renderSlot('sidebar.session.action', { wide }, { children: newSessionButton })}
++    </div>
 +  )
 +
 +  const visiblePanels = panels.filter(({ id }) => id === FIXED_PANEL_ID || !hasEntryActions || !unpinned.includes(id))
@@ -395,7 +406,7 @@ index b573b19cc8..24a9bcc38d 100644
    return (
      <div
        ref={column}
-@@ -326,8 +437,30 @@ export function SidebarRoot({
+@@ -326,8 +442,30 @@ export function SidebarRoot({
      >
        {/* macOS hiddenInset titlebar: the strip shares the row with the
            traffic lights and keeps the toggle at the sidebar's top-right. */}
@@ -428,7 +439,7 @@ index b573b19cc8..24a9bcc38d 100644
          {/* Expanded, the brand doubles as a New Session shortcut while the
              access snapshot allows `session/create` — except on
              macOS, where it stays part of the logo row's window-drag surface
-@@ -376,30 +509,9 @@ export function SidebarRoot({
+@@ -376,36 +514,9 @@ export function SidebarRoot({
              )
          })()}
          {!darwinDesktop && toggle}
@@ -437,31 +448,37 @@ index b573b19cc8..24a9bcc38d 100644
  
 -      {/* The label fades before the hover/focus shortcut, including on translucent backgrounds. */}
 -      {canStartSession && (
--        <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
--          <button
--            type="button"
--            className={css.newSession}
--            aria-label={t('session.new.label')}
--            aria-keyshortcuts={newShortcut?.aria}
--            onClick={openNewSession}
--          >
--            <span className={css.newSessionLabelMask}><span className={css.newSessionContent}>
--              {wide
--                ? <IconNewChatOutlineMedium size={14} />
--                : <IconNewChatOutlineRegular size={windowsTitlebar ? 16 : 18} />}
--              {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
--            </span></span>
--            {wide && newShortcut !== undefined && newShortcut.keys.length > 0 && <span className={css.newSessionShortcut} aria-hidden="true">
--              <ShortcutKeys keys={newShortcut.keys} />
--            </span>}
--          </button>
--        </Tooltip>
+-        <div className={css.newSessionRow}>
+-          {renderSlot('sidebar.session.action', { wide }, {
+-            children: (
+-              <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
+-                <button
+-                  type="button"
+-                  className={css.newSession}
+-                  aria-label={t('session.new.label')}
+-                  aria-keyshortcuts={newShortcut?.aria}
+-                  onClick={openNewSession}
+-                >
+-                  <span className={css.newSessionLabelMask}><span className={css.newSessionContent}>
+-                    {wide
+-                      ? <IconNewChatOutlineMedium size={14} />
+-                      : <IconNewChatOutlineRegular size={windowsTitlebar ? 16 : 18} />}
+-                    {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
+-                  </span></span>
+-                  {wide && newShortcut !== undefined && newShortcut.keys.length > 0 && <span className={css.newSessionShortcut} aria-hidden="true">
+-                    <ShortcutKeys keys={newShortcut.keys} />
+-                  </span>}
+-                </button>
+-              </Tooltip>
+-            ),
+-          })}
+-        </div>
 -      )}
 +      {compactChrome || newSession}
  
        <div className={css.scrollRegion}>
          <div
-@@ -407,43 +519,7 @@ export function SidebarRoot({
+@@ -413,43 +524,7 @@ export function SidebarRoot({
            className={css.scrollArea}
            data-sidebar-scrollport={wide ? '' : undefined}
          >
@@ -507,10 +524,10 @@ index b573b19cc8..24a9bcc38d 100644
              {renderSlot('sidebar.workspaces', {
                wide,
 diff --git a/packages/client/ui-sidebar/src/client/contract/slots.ts b/packages/client/ui-sidebar/src/client/contract/slots.ts
-index 1c36de4120..fb787b1c6f 100644
+index b6c2288656..aa017e8e9e 100644
 --- a/packages/client/ui-sidebar/src/client/contract/slots.ts
 +++ b/packages/client/ui-sidebar/src/client/contract/slots.ts
-@@ -96,6 +96,12 @@ export interface SidebarPanelIconOwnerProps {
+@@ -107,6 +107,12 @@ export interface SidebarPanelIconOwnerProps {
    active: boolean
  }
  
@@ -523,7 +540,7 @@ index 1c36de4120..fb787b1c6f 100644
  /** Serializable metadata for one active global panel list registration. */
  export interface SidebarPanelMetadata {
    /** List id and matching main panel key. */
-@@ -212,6 +218,11 @@ export type SidebarRootInjected = {
+@@ -229,6 +235,11 @@ export type SidebarRootInjected = {
    setPinned: (id: string, pinned: boolean) => void
    /** Record activation of an official navigation control without changing navigation. */
    trackEntryClick: (attributes: ProductEventMap['sidebar_menu_click']) => void
@@ -535,7 +552,7 @@ index 1c36de4120..fb787b1c6f 100644
    /** Private reactive sources bound to framework selector hooks. */
    hooks: {
      panels: ObservableSnapshot<readonly SidebarPanelMetadata[]>
-@@ -220,6 +231,8 @@ export type SidebarRootInjected = {
+@@ -237,6 +248,8 @@ export type SidebarRootInjected = {
      entryPins: ObservableSnapshot<readonly string[]>
      /** Whether `sidebar.panellist.actions` has registrations. */
      entryActions: ObservableSnapshot<boolean>
@@ -545,7 +562,7 @@ index 1c36de4120..fb787b1c6f 100644
  }
  
 diff --git a/packages/client/ui-sidebar/src/client/index.ts b/packages/client/ui-sidebar/src/client/index.ts
-index 3bf2993dd2..e48a60cd2f 100644
+index 981ea23d3a..1b0c7d844f 100644
 --- a/packages/client/ui-sidebar/src/client/index.ts
 +++ b/packages/client/ui-sidebar/src/client/index.ts
 @@ -10,7 +10,9 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -559,20 +576,19 @@ index 3bf2993dd2..e48a60cd2f 100644
  import { createPanelPins } from './panel-pins.ts'
  import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
  import { SidebarRoot } from './SidebarRoot.tsx'
-@@ -19,9 +21,9 @@ import { en, ja, es, fr, de, ru, pt, zh, type SidebarKey } from './locales.ts'
+@@ -19,8 +21,9 @@ import { en, ja, es, fr, de, ru, pt, zh, type SidebarKey } from './locales.ts'
  
  export type {
    SidebarBrandMarkOwnerProps, SidebarBrandNameOwnerProps, SidebarFooterActionOwnerProps,
 -  SidebarPanelActionEntry, SidebarPanelActionsOwnerProps, SidebarPanelIconOwnerProps, SidebarPanelMetadata,
--  SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps, SidebarSettingsOwnerProps,
--  SectionScroller, SidebarSectionHookContext, SidebarSectionInjected, UseSectionScroller,
+-  SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps, SidebarSessionActionOwnerProps,
 +  SidebarLayoutPreference, SidebarPanelActionEntry, SidebarPanelActionsOwnerProps, SidebarPanelIconOwnerProps,
 +  SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
-+  SidebarSettingsOwnerProps, SectionScroller, SidebarSectionHookContext, SidebarSectionInjected, UseSectionScroller,
++  SidebarSessionActionOwnerProps,
+   SidebarSettingsOwnerProps, SectionScroller, SidebarSectionHookContext, SidebarSectionInjected, UseSectionScroller,
  } from './contract/slots.ts'
  export type { SidebarKey } from './locales.ts'
- 
-@@ -74,6 +76,12 @@ export function apply(ctx: ClientContext): void {
+@@ -74,6 +77,12 @@ export function apply(ctx: ClientContext): void {
      getSnapshot: () => ctx.slots.entriesOfSlot('sidebar.panellist.actions').length > 0,
      subscribe: (listener: () => void) => ctx.slots.subscribe('sidebar.panellist.actions', listener),
    }
@@ -585,7 +601,7 @@ index 3bf2993dd2..e48a60cd2f 100644
  
    const injectProps = (): SidebarRootInjected => ({
      // The shell's New Session button rides the Workspace UI's shared action
-@@ -83,7 +91,8 @@ export function apply(ctx: ClientContext): void {
+@@ -83,7 +92,8 @@ export function apply(ctx: ClientContext): void {
      selectPanel: (id) => { ctx.layout.selectPanel(id) },
      setPinned: panelPins.setPinned,
      trackEntryClick: (attributes) => { ctx.get('productAnalytics')?.track('sidebar_menu_click', attributes) },
@@ -678,10 +694,10 @@ index e6ee027f8e..e1f8ed4d2b 100644
 +  'layout.switchToCompact': 'Mudar para o layout compacto',
  } satisfies Record<keyof typeof en, string>
 diff --git a/packages/client/ui-sidebar/tests/apply.client.spec.tsx b/packages/client/ui-sidebar/tests/apply.client.spec.tsx
-index d03c19b4bb..73a21e9ae7 100644
+index 5665077242..175d2ad89b 100644
 --- a/packages/client/ui-sidebar/tests/apply.client.spec.tsx
 +++ b/packages/client/ui-sidebar/tests/apply.client.spec.tsx
-@@ -85,10 +85,13 @@ describe('ui-sidebar apply', () => {
+@@ -86,10 +86,13 @@ describe('ui-sidebar apply', () => {
      expect(leading[0]!.locale).toBe('sidebar')
      expect(leading[0]!.inject).toBe(b.slots.entries('sidebar')[0]!.inject)
      const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
@@ -709,10 +725,10 @@ index 7b06396d72..e5673f12f3 100644
        renderFactorySlot={() => null}
        renderSlot={((_key: string, owner: SidebarSectionOwnerProps) =>
 diff --git a/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx b/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx
-index f6b1b391c6..b202f7a507 100644
+index 4ce129f5a9..073e5d9d4b 100644
 --- a/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx
 +++ b/packages/client/ui-sidebar/tests/sidebar-root.client.spec.tsx
-@@ -45,15 +45,25 @@ function makeHeaderProps(): HeaderLeadingControlsProps {
+@@ -46,15 +46,25 @@ function makeHeaderProps(): HeaderLeadingControlsProps {
      usePanelInfo, useResource, useWorkspaces: neverHook, ...allowAllAccess,
      usePanels: selector => selector([]), useShortcuts: selector => selector([]),
      useEntryPins: selector => selector([]), useEntryActions: selector => selector(false),
@@ -739,7 +755,7 @@ index f6b1b391c6..b202f7a507 100644
    shortcuts?: readonly ShortcutCatalogEntry[]
    panels?: readonly SidebarPanelMetadata[]
    content?: ReactNode
-@@ -68,42 +78,48 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts
+@@ -71,47 +81,53 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts
    const brandMark = <span data-testid="custom-brand-mark">M</span>
    const brandName = <span data-testid="custom-brand-name">Custom Brand</span>
    let current = { collapsed, width, drawer }
@@ -757,8 +773,8 @@ index f6b1b391c6..b202f7a507 100644
 -      renderFactorySlot={() => null}
 -      renderSlot={((
 -        key: string,
--        owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSettingsOwnerProps,
--        opts?: { hookContext?: SidebarSectionHookContext },
+-        owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSessionActionOwnerProps | SidebarSettingsOwnerProps,
+-        opts?: { hookContext?: SidebarSectionHookContext; children?: ReactNode },
 -      ) => {
 -        if (key === 'sidebar.brand.mark') return brandMark
 -        if (key === 'sidebar.brand.name') return brandName
@@ -771,6 +787,11 @@ index f6b1b391c6..b202f7a507 100644
 -        if (key === 'sidebar.footer.action') {
 -          footerActionOwner = owner
 -          return <div data-testid="footer-action-seat" data-wide={owner.wide} />
+-        }
+-        if (key === 'sidebar.session.action') {
+-          sessionActionOwner = owner
+-          sessionActionChildren = opts?.children
+-          return <>{opts?.children}<div data-testid="session-action-seat" data-wide={owner.wide} /></>
 -        }
 -        regionOwner = owner as SidebarSectionOwnerProps
 -        regionContext = opts?.hookContext
@@ -799,8 +820,8 @@ index f6b1b391c6..b202f7a507 100644
 +        renderFactorySlot={() => null}
 +        renderSlot={((
 +          key: string,
-+          owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSettingsOwnerProps,
-+          opts?: { hookContext?: SidebarSectionHookContext },
++          owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSessionActionOwnerProps | SidebarSettingsOwnerProps,
++          opts?: { hookContext?: SidebarSectionHookContext; children?: ReactNode },
 +        ) => {
 +          if (key === 'sidebar.brand.mark') return brandMark
 +          if (key === 'sidebar.brand.name') return brandName
@@ -814,6 +835,11 @@ index f6b1b391c6..b202f7a507 100644
 +            footerActionOwner = owner
 +            return <div data-testid="footer-action-seat" data-wide={owner.wide} />
 +          }
++          if (key === 'sidebar.session.action') {
++            sessionActionOwner = owner as SidebarSessionActionOwnerProps
++            sessionActionChildren = opts?.children
++            return <>{opts?.children}<div data-testid="session-action-seat" data-wide={owner.wide} /></>
++          }
 +          regionOwner = owner as SidebarSectionOwnerProps
 +          regionContext = opts?.hookContext
 +          return <div data-testid="region" data-wide={owner.wide}>{content}</div>
@@ -824,8 +850,8 @@ index f6b1b391c6..b202f7a507 100644
    return {
      startSession,
      toggleSidebar,
-@@ -126,7 +142,7 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts
-     },
+@@ -139,7 +155,7 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts
+     sessionActionChildren: () => sessionActionChildren,
      rerender(next: Partial<typeof current>) {
        current = { ...current, ...next }
 -      view.rerender(root())
@@ -833,7 +859,7 @@ index f6b1b391c6..b202f7a507 100644
      },
    }
  }
-@@ -177,6 +193,7 @@ describe('SidebarRoot shell', () => {
+@@ -190,6 +206,7 @@ describe('SidebarRoot shell', () => {
        usePanelInfo={neverHook} useSessions={neverHook} useSessionStatus={neverHook}
        useSessionRetainInfo={neverHook} useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
        {...allowAllAccess}
@@ -841,7 +867,7 @@ index f6b1b391c6..b202f7a507 100644
        usePanels={select => select([])} useEntryPins={select => select([])}
        useEntryActions={select => select(false)} setPinned={vi.fn()} useShortcuts={select => select([shortcut])} />)
      const button = screen.getByRole('button', { name: 'New session' })
-@@ -225,6 +242,7 @@ describe('SidebarRoot shell', () => {
+@@ -238,6 +255,7 @@ describe('SidebarRoot shell', () => {
        useShortcuts={selector => selector([])}
        useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
        {...allowAllAccess}
@@ -849,7 +875,7 @@ index f6b1b391c6..b202f7a507 100644
        useRemoteAccess={useRemoteAccess}
        startSession={startSession} toggleSidebar={toggleSidebar} trackEntryClick={vi.fn()} t={t}
        renderFactorySlot={() => null}
-@@ -258,6 +276,7 @@ describe('SidebarRoot shell', () => {
+@@ -271,6 +289,7 @@ describe('SidebarRoot shell', () => {
        useShortcuts={selector => selector([])}
        useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
        {...allowAllAccess}
@@ -857,7 +883,7 @@ index f6b1b391c6..b202f7a507 100644
        startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
        renderFactorySlot={() => null}
        renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
-@@ -283,6 +302,7 @@ describe('SidebarRoot shell', () => {
+@@ -296,6 +315,7 @@ describe('SidebarRoot shell', () => {
        useShortcuts={selector => selector([])}
        useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
        {...allowAllAccess}
@@ -865,7 +891,7 @@ index f6b1b391c6..b202f7a507 100644
        startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
        renderFactorySlot={() => null}
        renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
-@@ -312,6 +332,7 @@ describe('SidebarRoot shell', () => {
+@@ -325,6 +345,7 @@ describe('SidebarRoot shell', () => {
        useShortcuts={selector => selector([])}
        useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
        {...allowAllAccess}
@@ -873,7 +899,7 @@ index f6b1b391c6..b202f7a507 100644
        startSession={startSession} toggleSidebar={vi.fn()} trackEntryClick={trackEntryClick} t={t}
        renderFactorySlot={() => null}
        renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
-@@ -364,6 +385,7 @@ describe('SidebarRoot shell', () => {
+@@ -377,6 +398,7 @@ describe('SidebarRoot shell', () => {
        useShortcuts={selector => selector([])}
        useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
        {...allowAllAccess}
@@ -881,7 +907,7 @@ index f6b1b391c6..b202f7a507 100644
        startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
        renderFactorySlot={() => null}
        renderSlot={((_key: string, _owner: unknown, options?: { fallback?: ReactNode }) =>
-@@ -429,6 +451,7 @@ describe('SidebarRoot shell', () => {
+@@ -449,6 +471,7 @@ describe('SidebarRoot shell', () => {
        useShortcuts={selector => selector([])}
        useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
        {...allowAllAccess}
@@ -889,7 +915,7 @@ index f6b1b391c6..b202f7a507 100644
        startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
        renderFactorySlot={() => null}
        renderSlot={((key: string) => key === 'sidebar.toggle.badge'
-@@ -465,6 +488,26 @@ it('keeps the macOS sidebar toggle in its top strip', () => {
+@@ -485,6 +508,26 @@ it('keeps the macOS sidebar toggle in its top strip', () => {
    expect(shell.trackEntryClick).toHaveBeenCalledExactlyOnceWith({ menu_name: 'new_session', position: 'sidebar' })
  })
  
